@@ -23,6 +23,24 @@ pub struct QueryBalanceRequest {
     pub denom: Option<String>,
 }
 
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub struct QueryContractRequest {
+    #[schemars(description = "The contract address to query")]
+    pub contract_address: String,
+    #[schemars(description = "The query message as a JSON string")]
+    pub query_msg: String,
+}
+
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub struct ExecuteContractRequest {
+    #[schemars(description = "The contract address to execute on")]
+    pub contract_address: String,
+    #[schemars(description = "The execute message as a JSON string")]
+    pub execute_msg: String,
+    #[schemars(description = "Optional funds to send with the execution")]
+    pub funds: Option<Vec<cw_orch::prelude::Coin>>,
+}
+
 impl CwOrchHandler {
     pub async fn new(chain_id: &str, mnemonic: Option<String>) -> Result<Self, McpError> {
         // Create a proper ChainInfoOwned object
@@ -87,6 +105,55 @@ impl CwOrchHandler {
         let chain_id = self.daemon.chain_info().chain_id.clone();
 
         Ok(CallToolResult::success(vec![Content::text(chain_id)]))
+    }
+
+    #[tool(description = "Query a CosmWasm contract")]
+    async fn query_contract(
+        &self,
+        #[tool(aggr)] request: QueryContractRequest,
+    ) -> Result<CallToolResult, McpError> {
+        // Parse the query message from JSON
+        let query_msg: serde_json::Value = serde_json::from_str(&request.query_msg)
+            .map_err(|e| CwOrchMcpError::JsonError(e.to_string()))?;
+
+        // Query the contract
+        let response: serde_json::Value = self
+            .daemon
+            .query(&query_msg, &Addr::unchecked(request.contract_address))
+            .await
+            .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+
+        Ok(CallToolResult::success(vec![Content::json(response)?]))
+    }
+
+    #[tool(description = "Execute a message on a CosmWasm contract")]
+    async fn execute_contract(
+        &self,
+        #[tool(aggr)] request: ExecuteContractRequest,
+    ) -> Result<CallToolResult, McpError> {
+        // Parse the execute message from JSON
+        let execute_msg: serde_json::Value = serde_json::from_str(&request.execute_msg)
+            .map_err(|e| CwOrchMcpError::JsonError(e.to_string()))?;
+
+        // Execute the contract
+        let response = self
+            .daemon
+            .execute(
+                &execute_msg,
+                &request.funds.unwrap_or_default(),
+                &Addr::unchecked(request.contract_address),
+            )
+            .await
+            .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+
+        let tx_hash_json = serde_json::json!({
+           "height": response.height,
+           "tx_hash": response.txhash,
+           "codespace": response.codespace,
+           "code": response.code,
+           "timestamp": response.timestamp,
+        });
+        Ok(CallToolResult::success(vec![Content::json(tx_hash_json)?]))
     }
 }
 

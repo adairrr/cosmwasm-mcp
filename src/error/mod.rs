@@ -24,6 +24,9 @@ pub enum CwOrchMcpError {
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
+
+    #[error("JSON error: {0}")]
+    JsonError(String),
 }
 
 impl From<CwOrchMcpError> for Error {
