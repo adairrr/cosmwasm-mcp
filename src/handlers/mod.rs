@@ -1,7 +1,7 @@
 use crate::error::CwOrchMcpError;
 use cw_orch::daemon::networks::parse_network;
 use cw_orch::daemon::queriers::Bank;
-use cw_orch::daemon::{Daemon, DaemonBuilder};
+use cw_orch::daemon::{DaemonAsync, DaemonAsyncBuilder};
 use cw_orch::prelude::*;
 use rmcp::{
     const_string, model::*, schemars, service::RequestContext, tool, Error as McpError, RoleServer,
@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct CwOrchHandler {
-    daemon: Arc<Daemon>,
+    daemon: Arc<DaemonAsync>,
 }
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -29,7 +29,7 @@ impl CwOrchHandler {
         let chain_info =
             parse_network(chain_id).map_err(|e| CwOrchMcpError::BlockchainError(e.to_string()))?;
 
-        let mut builder = DaemonBuilder::new(chain_info);
+        let mut builder = DaemonAsyncBuilder::new(chain_info);
 
         if let Some(mnemonic) = mnemonic {
             builder.mnemonic(mnemonic);
@@ -37,6 +37,7 @@ impl CwOrchHandler {
 
         let daemon = builder
             .build()
+            .await
             .map_err(|e| CwOrchMcpError::BlockchainError(e.to_string()))?;
 
         Ok(Self {
@@ -53,20 +54,25 @@ impl CwOrchHandler {
         #[tool(aggr)] request: QueryBalanceRequest,
     ) -> Result<CallToolResult, McpError> {
         // Use the daemon's methods to query the balance
-        // Note: This is a placeholder - you'll need to implement the actual balance query
-        // based on the Daemon API
-        let bank = self.daemon.bank_querier();
+        let bank = Bank::new_async(self.daemon.channel());
 
-        let balance = bank.balance(&Addr::unchecked(request.address), request.denom)
+        let balance = bank
+            ._balance(&Addr::unchecked(request.address), request.denom)
+            .await
             .map_err(|e| CwOrchMcpError::DaemonError(e))?;
 
         Ok(CallToolResult::success(vec![Content::json(balance)?]))
     }
+
     #[tool(description = "Get the current block height")]
     async fn get_block_height(&self) -> Result<CallToolResult, McpError> {
         // Use the daemon's methods to get the block height
-        let height = self.daemon.block_info()
-            .map_err(|e| CwOrchMcpError::DaemonError(e))?.height;
+        let height = self
+            .daemon
+            .block_info()
+            .await
+            .map_err(|e| CwOrchMcpError::DaemonError(e))?
+            .height;
 
         Ok(CallToolResult::success(vec![Content::text(
             height.to_string(),
@@ -77,7 +83,7 @@ impl CwOrchHandler {
     fn get_chain_id(&self) -> Result<CallToolResult, McpError> {
         // Get the chain ID from the daemon
         // Note: This is a placeholder - you'll need to implement the actual chain ID query
-        // based on the Daemon API
+        // based on the DaemonAsync API
         let chain_id = self.daemon.chain_info().chain_id.clone();
 
         Ok(CallToolResult::success(vec![Content::text(chain_id)]))
