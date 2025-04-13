@@ -1,3 +1,4 @@
+use cw_orch::daemon::DaemonError;
 use rmcp::{model::ErrorCode, Error};
 use thiserror::Error;
 
@@ -17,6 +18,9 @@ pub enum CwOrchMcpError {
 
     #[error("Internal error: {0}")]
     InternalError(String),
+
+    #[error("Daemon error: {0}")]
+    DaemonError(DaemonError),
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
