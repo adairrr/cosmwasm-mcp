@@ -3,12 +3,10 @@ mod error;
 mod handlers;
 
 use crate::config::McpConfig;
-use crate::error::CwOrchMcpError;
 use crate::handlers::CwOrchHandler;
 use anyhow::Result;
 use dotenv::dotenv;
 use rmcp::{transport::stdio, ServiceExt};
-use tracing::{error, info};
 use tracing_subscriber::{self, EnvFilter};
 
 #[tokio::main]

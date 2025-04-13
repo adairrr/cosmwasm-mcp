@@ -5,7 +5,7 @@ mod node;
 use cw_orch::daemon::networks::parse_network;
 use cw_orch::daemon::DaemonAsync;
 use rmcp::{
-    model::*, schemars, service::RequestContext, tool, Error as McpError, RoleServer, ServerHandler,
+    model::*, tool, Error as McpError, ServerHandler,
 };
 use std::sync::Arc;
 

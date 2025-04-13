@@ -1,7 +1,6 @@
 use cw_orch::daemon::queriers::Bank;
 use cw_orch::prelude::*;
 use rmcp::{model::*, Error as McpError};
-use serde_json::json;
 
 use crate::error::CwOrchMcpError;
 
@@ -24,7 +23,7 @@ pub(super) async fn query_balance_impl(
     let balance = bank
         ._balance(&Addr::unchecked(request.address), request.denom)
         .await
-        .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+        .map_err(CwOrchMcpError::DaemonError)?;
 
     Ok(CallToolResult::success(vec![Content::json(balance)?]))
 }

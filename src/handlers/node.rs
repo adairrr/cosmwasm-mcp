@@ -12,7 +12,7 @@ pub(super) async fn get_block_height_impl(
     let height = daemon
         .block_info()
         .await
-        .map_err(|e| CwOrchMcpError::DaemonError(e))?
+        .map_err(CwOrchMcpError::DaemonError)?
         .height;
 
     Ok(CallToolResult::success(vec![Content::text(

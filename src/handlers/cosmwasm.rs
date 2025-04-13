@@ -51,7 +51,7 @@ pub(super) async fn query_contract_impl(
     let response: serde_json::Value = daemon
         .query(&query_msg, &Addr::unchecked(request.contract_address))
         .await
-        .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+        .map_err(CwOrchMcpError::DaemonError)?;
 
     Ok(CallToolResult::success(vec![Content::json(response)?]))
 }
@@ -70,7 +70,7 @@ pub(super) async fn execute_contract_impl(
             &Addr::unchecked(request.contract_address),
         )
         .await
-        .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+        .map_err(CwOrchMcpError::DaemonError)?;
 
     let tx_hash_json = json!({
         "height": response.height,
@@ -90,7 +90,7 @@ pub(super) async fn instantiate_contract_impl(
     let init_msg: serde_json::Value = serde_json::from_str(&request.init_msg)
         .map_err(|e| CwOrchMcpError::JsonError(e.to_string()))?;
 
-    let admin = request.admin.map(|addr| Addr::unchecked(addr));
+    let admin = request.admin.map(Addr::unchecked);
 
     let response = daemon
         .instantiate(
@@ -101,7 +101,7 @@ pub(super) async fn instantiate_contract_impl(
             &request.funds.unwrap_or_default(),
         )
         .await
-        .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+        .map_err(CwOrchMcpError::DaemonError)?;
 
     let contract_address = response
         .instantiated_contract_address()
