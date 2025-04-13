@@ -4,9 +4,7 @@ mod node;
 
 use cw_orch::daemon::networks::parse_network;
 use cw_orch::daemon::DaemonAsync;
-use rmcp::{
-    model::*, tool, Error as McpError, ServerHandler,
-};
+use rmcp::{model::*, tool, Error as McpError, ServerHandler};
 use std::sync::Arc;
 
 use crate::error::CwOrchMcpError;
@@ -56,14 +54,22 @@ impl CwOrchHandler {
     /////////////////////////
     ////  Node Handler   /////
     /// //////////////////////
-    #[tool(description = node::GET_BLOCK_HEIGHT_DESCRIPTION)]
-    async fn get_block_height(&self) -> Result<CallToolResult, McpError> {
-        node::get_block_height_impl(&self.daemon).await
+    #[tool(description = node::GET_BLOCK_INFO_DESCRIPTION)]
+    async fn get_block_info(&self) -> Result<CallToolResult, McpError> {
+        node::get_block_info_impl(&self.daemon).await
     }
 
     #[tool(description = node::GET_CHAIN_ID_DESCRIPTION)]
     fn get_chain_id(&self) -> Result<CallToolResult, McpError> {
         node::get_chain_id_impl(&self.daemon)
+    }
+
+    #[tool(description = node::GET_TX_DESCRIPTION)]
+    async fn get_tx(
+        &self,
+        #[tool(aggr)] request: node::GetTxRequest,
+    ) -> Result<CallToolResult, McpError> {
+        node::get_tx_impl(&self.daemon, request).await
     }
 
     /////////////////////////
