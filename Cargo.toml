@@ -1,0 +1,42 @@
+[package]
+name = "cw-orch-mcp"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "MCP server for interacting with CosmWasm-based blockchains using cw-orchestrator"
+
+[dependencies]
+# MCP SDK
+rmcp = { version = "0.1", features = ["server", "macros", "transport-io"] }
+
+# CosmWasm and cw-orchestrator
+cw-orch = { version = "0.28.0", features = ["daemon"] }
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = "1.4.0"
+
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+schemars = "0.8"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "std",
+    "fmt",
+] }
+
+# Environment variables
+dotenv = "0.15"
+
+[dev-dependencies]
+tokio-test = "0.4"
