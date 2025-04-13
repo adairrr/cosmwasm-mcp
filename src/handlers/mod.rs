@@ -41,6 +41,20 @@ pub struct ExecuteContractRequest {
     pub funds: Option<Vec<cw_orch::prelude::Coin>>,
 }
 
+#[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
+pub struct InstantiateContractRequest {
+    #[schemars(description = "The code ID of the contract to instantiate")]
+    pub code_id: u64,
+    #[schemars(description = "The initialization message as a JSON string")]
+    pub init_msg: String,
+    #[schemars(description = "Optional label for the contract")]
+    pub label: Option<String>,
+    #[schemars(description = "Optional admin address for the contract")]
+    pub admin: Option<String>,
+    #[schemars(description = "Optional funds to send with the instantiation")]
+    pub funds: Option<Vec<cw_orch::prelude::Coin>>,
+}
+
 impl CwOrchHandler {
     pub async fn new(chain_id: &str, mnemonic: Option<String>) -> Result<Self, McpError> {
         // Create a proper ChainInfoOwned object
@@ -154,6 +168,47 @@ impl CwOrchHandler {
            "timestamp": response.timestamp,
         });
         Ok(CallToolResult::success(vec![Content::json(tx_hash_json)?]))
+    }
+
+    #[tool(description = "Instantiate a CosmWasm contract")]
+    async fn instantiate_contract(
+        &self,
+        #[tool(aggr)] request: InstantiateContractRequest,
+    ) -> Result<CallToolResult, McpError> {
+        // Parse the initialization message from JSON
+        let init_msg: serde_json::Value = serde_json::from_str(&request.init_msg)
+            .map_err(|e| CwOrchMcpError::JsonError(e.to_string()))?;
+
+        // Convert optional admin address to Addr if provided
+        let admin = request.admin.map(|addr| Addr::unchecked(addr));
+
+        // Instantiate the contract
+        let response = self
+            .daemon
+            .instantiate(
+                request.code_id,
+                &init_msg,
+                request.label.as_deref(),
+                admin.as_ref(),
+                &request.funds.unwrap_or_default(),
+            )
+            .await
+            .map_err(|e| CwOrchMcpError::DaemonError(e))?;
+
+        // Extract the contract address from the response
+        let contract_address = response.instantiated_contract_address()
+            .map_err(|e| CwOrchMcpError::BlockchainError(e.to_string()))?;
+
+        let result_json = serde_json::json!({
+            "height": response.height,
+            "tx_hash": response.txhash,
+            "codespace": response.codespace,
+            "code": response.code,
+            "timestamp": response.timestamp,
+            "contract_address": contract_address,
+        });
+
+        Ok(CallToolResult::success(vec![Content::json(result_json)?]))
     }
 }
 
